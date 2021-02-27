@@ -1,0 +1,35 @@
+version: "3"
+
+services:
+  db:
+    environment:
+      - POSTGRES_USER=app
+      - POSTGRES_DB=app
+      - POSTGRES_PASSWORD=app
+    ports:
+      - 5432:5432
+    volumes:
+      - app_db:/var/lib/postgresql/data
+
+  redis:
+    volumes:
+      - app_redis:/data
+
+  app:
+    ports:
+      - 8000:8000
+    command: ./manage.py runserver 0.0.0.0:8000
+    volumes:
+      - .:/app
+
+  celery-worker:
+    volumes:
+      - .:/app
+
+  celery-beat:
+    volumes:
+      - .:/app
+
+volumes:
+  app_db:
+  app_redis:
