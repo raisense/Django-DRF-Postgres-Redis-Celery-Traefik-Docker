@@ -1,0 +1,59 @@
+version: "3"
+
+
+services:
+  traefik:
+    command:
+      # Enable Docker in Traefik, so that it reads labels from Docker services
+      - --providers.docker
+      # Do not expose all Docker services, only the ones explicitly exposed
+      - --providers.docker.exposedbydefault=false
+      # Define an entrypoint called http that will listen on port 80
+      - --entrypoints.http.address=:80
+      # Define an entrypoint called https that will listen on port 443
+      - --entrypoints.https.address=:443
+      # Create certificate resolver "le" for Let's Encrypt, uses the environment variable EMAIL
+      - --certificatesresolvers.le.acme.email=${EMAIL}
+      # Store Let's Encrypt certificates in the mounted volume
+      - --certificatesresolvers.le.acme.storage=/certificates/acme.json
+      # Use TLS challenge for Let's Encrypt
+      - --certificatesresolvers.le.acme.tlschallenge=true
+      # Enable the access log, with HTTP requests
+      - --accesslog
+      # Enable the Traefik log, for configurations and errors
+      - --log
+      # Enable the Dashboard and API
+      - --api
+    ports:
+      - 80:80
+      - 443:443
+    labels:
+      # Make the router use this domain in HTTPS
+      - traefik.http.routers.traefik-dashboard-https.entrypoints=https
+      - traefik.http.routers.traefik-dashboard-https.rule=Host(`traefik.${DOMAIN?Variable not set}`)
+      - traefik.http.routers.traefik-dashboard-https.tls=true
+      # Use the "le" Let's Encrypt resolver
+      - traefik.http.routers.traefik-dashboard-https.tls.certresolver=le
+      # "https-redirect" middleware to redirect HTTP to HTTPS
+      - traefik.http.middlewares.https-redirect.redirectscheme.scheme=https
+      - traefik.http.middlewares.https-redirect.redirectscheme.permanent=true
+      # Set the middleware "traefik-dashboard-http" router
+      - traefik.http.routers.traefik-dashboard-http.middlewares=https-redirect
+      # Enable HTTP Basic Auth, using the middleware
+      - traefik.http.routers.traefik-dashboard-https.middlewares=admin-auth
+
+
+  app:
+    labels:
+      # Make the router use this domain in HTTPS
+      - traefik.http.routers.app-https.entrypoints=https
+      # backend subdomain is added in the case if you are intentionally using DOMAIN variable for your whole project
+      - traefik.http.routers.app-https.rule=Host(`backend.${DOMAIN?Variable not set}`)
+      - traefik.http.routers.app-https.tls=true
+      # Use the "le" Let's Encrypt resolver
+      - traefik.http.routers.app-https.tls.certResolver=le
+      # "https-redirect" middleware to redirect HTTP to HTTPS
+      - traefik.http.middlewares.https-redirect.redirectscheme.scheme=https
+      - traefik.http.middlewares.https-redirect.redirectscheme.permanent=true
+      # Set the middleware "app-http" router
+      - traefik.http.routers.app-http.middlewares=https-redirect

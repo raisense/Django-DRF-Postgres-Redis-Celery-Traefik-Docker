@@ -1,6 +1,29 @@
 version: "3"
 
 services:
+  traefik:
+    command:
+      # Enable the Dashboard and API in insecure mode for local development
+      - --api.insecure=true
+      # Enable Docker in Traefik, so that it reads labels from Docker services
+      - --providers.docker
+      # Do not expose all Docker services, only the ones explicitly exposed
+      - --providers.docker.exposedbydefault=false
+      # Define an entrypoint called http that will listen on port 80
+      - --entrypoints.http.address=:80
+      # Enable the access log, with HTTP requests
+      - --accesslog
+      # Enable the Traefik log, for configurations and errors
+      - --log
+      # Enable the Dashboard and API
+      - --api
+    ports:
+      - 80:80
+      - 8090:8080
+    labels:
+      # Enable HTTP Basic Auth using the middleware middleware
+      - traefik.http.routers.traefik-dashboard-http.middlewares=admin-auth
+
   db:
     environment:
       - POSTGRES_USER=app
